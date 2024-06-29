@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from src.feature_extractor import FeatureExtractor
-from src.filters import ErrorModuleFilter, SamplingSimulationLayer, CenterMeanFilter
+from src.filters import ErrorModuleFilter, SamplingSimulationLayer, CenterFilter
 
 
 def color_to_gray(images):
@@ -23,13 +23,13 @@ class CodeLoss(nn.Module):
             w_thres=w_thres,
         )
         self.ss_layer = SamplingSimulationLayer(module_size=module_size)
-        self.center_filter = CenterMeanFilter(module_size=module_size)
+        self.center_filter = CenterFilter(module_size=module_size)
 
     def forward(self, x, y):
-        x_gray = color_to_gray(x.clone().detach())
-        error_module = self.error_module_filter(x_gray, y)
+        x_gray = color_to_gray(x)
+        error_module = self.error_module_filter(x_gray.clone(), y)
         return self.mse(
-            self.ss_layer(x) * error_module,
+            self.ss_layer(x_gray) * error_module,
             self.center_filter(y) * error_module
         )
 
@@ -39,7 +39,7 @@ class GramMatrix(nn.Module):
         b, c, h, w = x.shape
         F = x.view(b, c, h * w)
         G = torch.bmm(F, F.transpose(1, 2))
-        return G.div_(h * w)
+        return G.div_(c * h * w)
 
 
 class StyleLoss(nn.Module):
@@ -70,12 +70,9 @@ class PerceptualLoss(nn.Module):
         self.eval()
 
     def forward(self, x, y):
-        return sum(
-            [
-                self.mse_loss(fx, fy)
-                for fx, fy in zip(self.extractor(x), self.extractor(y))
-            ]
-        )
+        fx = self.extractor(x)[-1]
+        fy = self.extractor(y)[-1]
+        return self.mse_loss(fx, fy)
 
 
 class StyleFeatureLoss(nn.Module):
@@ -142,10 +139,16 @@ class ArtCoderLoss(nn.Module):
         code_loss = self.code_loss(x, y)
         perceptual_loss = self.perceptual_loss(x, x0)
         style_loss = self.style_loss(x, s)
-        print("code_loss:", code_loss.item(), "perceptual_loss:", perceptual_loss.item(), "style_loss:", style_loss.item())
-        return self.code_weight * code_loss + \
-            self.content_weight * perceptual_loss + \
+        #total_loss = self.code_weight * code_loss + \
+        total_loss = self.content_weight * perceptual_loss + \
             self.style_weight * style_loss
+
+        return {
+            "code": code_loss,
+            "perceptual": perceptual_loss,
+            "style": style_loss,
+            "total": total_loss
+        }
 
 
 if __name__ == "__main__":

@@ -62,7 +62,7 @@ class BaseFeatureExtractor(nn.Module):
 
     def forward(self, x):
         outputs = []
-        x = self.scale_layer(x)
+        # x = self.scale_layer(x)
         for i in range(self.n_slices):
             x = self.slices[i](x)
             outputs.append(self.norm_layer(x))
@@ -119,7 +119,7 @@ class FeatureExtractor(nn.Module):
         device="cuda" if torch.cuda.is_available() else "cpu",
     ):
         super(FeatureExtractor, self).__init__()
-        self.norm = InputNormalization()
+        # self.norm = InputNormalization()
 
         if model_type == "vgg":
             extractor = VGGFeatureExtractor
@@ -135,4 +135,5 @@ class FeatureExtractor(nn.Module):
         self.device = device
 
     def forward(self, x):
-        return self.extractor(self.norm(x))
+        # return self.extractor(self.norm(x))
+        return self.extractor(x)
