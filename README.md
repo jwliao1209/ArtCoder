@@ -8,3 +8,8 @@ virtualenv --python=python3.10 artcoder
 source diffqrcoder/bin/activate
 pip install -r requirements.txt
 ```
+
+## Generation
+```
+python generate_asethetic_qrcode.py
+```

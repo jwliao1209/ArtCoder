@@ -5,9 +5,10 @@ import numpy as np
 import torch
 from PIL import Image
 from tqdm import tqdm
+from torchvision.transforms.functional import to_pil_image
 
-from src.image_processor import image_binarize
 from src.losses import ArtCoderLoss
+from src.image_processor import image_binarize
 from src.utils import (
     add_position_pattern,
     convert_normalized_tensor_to_np_image,
@@ -43,9 +44,10 @@ def parse_arguments() -> Namespace:
         default=37,
     )
     parser.add_argument(
+        "-i",
         "--iterations",
         type=int,
-        default=5000,
+        default=1000,
     )
     parser.add_argument(
         "--b_thres",
@@ -90,7 +92,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--output_path",
         type=str,
-        default="results/image.png",
+        default="results/image.jpg",
     )
     return parser.parse_args()
 
@@ -118,10 +120,7 @@ def optimize_code(
     qrcode_image = qrcode_image.to(device)
     style_image = style_image.to(device)
 
-    qrcode_image = qrcode_image.clone().requires_grad_(False)
-    style_image = style_image.clone().requires_grad_(False)
-    x = content_image.clone().requires_grad_(True)
-
+    x = content_image.detach().clone().requires_grad_(True)
     optimizer = torch.optim.Adam([x], lr=lr)
     objective_func = ArtCoderLoss(
         qrcode_image=qrcode_image,
@@ -139,25 +138,24 @@ def optimize_code(
     )
 
     for i in tqdm(range(iterations)):
-        def closure():
-            optimizer.zero_grad()
-            losses = objective_func(x)
-            losses["total"].backward(retain_graph=True)
+        optimizer.zero_grad()
+        losses = objective_func(x)
+        losses["total"].backward(retain_graph=True)
+        optimizer.step()
+        x.data.clamp_(0, 1)
 
-            if display_loss:
-                print(
-                    f"iterations: {i}, " + \
-                    ", ".join([f"{k}_loss: {v:.8f}" for k, v in losses.items()])
-                )
-
-        optimizer.step(closure)
+        if display_loss:
+            tqdm.write(
+                f"iterations: {i}, " + \
+                ", ".join([f"{k}_loss: {v:.4f}" for k, v in losses.items()])
+            )
 
     return add_position_pattern(
         convert_normalized_tensor_to_np_image(x),
         convert_normalized_tensor_to_np_image(qrcode_image),
         module_size=module_size,
         module_num=module_num,
-    ).astype("uint8")
+    )
 
 
 if __name__ == "__main__":
@@ -172,7 +170,8 @@ if __name__ == "__main__":
     style_image = Image.open(args.style_image_path).resize(qrcode_size, Image.LANCZOS)
 
     content_image = convert_pil_to_normalized_tensor(content_image)
-    qrcode_image = image_binarize(convert_pil_to_normalized_tensor(qrcode_image))
+    qrcode_image = convert_pil_to_normalized_tensor(qrcode_image)
+    qrcode_image = image_binarize(qrcode_image)
     style_image = convert_pil_to_normalized_tensor(style_image)
 
     asethetic_qrcode = optimize_code(
@@ -190,4 +189,5 @@ if __name__ == "__main__":
         content_weight=args.content_weight,
         style_weight=args.style_weight,
     )
-    Image.fromarray(asethetic_qrcode).save(args.output_path)
+    asethetic_qrcode = to_pil_image(asethetic_qrcode)
+    asethetic_qrcode.save(args.output_path)

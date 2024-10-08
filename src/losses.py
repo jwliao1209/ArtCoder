@@ -1,9 +1,9 @@
 import torch
 from torch import nn
 
-from .feature_extractor import FeatureExtractor
+from .feature_extractor import VGGFeatureExtractor
 from .filters import ErrorModuleFilter, SamplingSimulationLayer, CenterFilter
-from .image_processor import color_to_gray
+from .image_processor import color_to_gray, image_binarize
 
 
 class CodeLoss(nn.Module):
@@ -12,9 +12,9 @@ class CodeLoss(nn.Module):
         qrcode_image: torch.Tensor,
         module_size: int,
         b_thres: float,
-        w_thres:float ,
+        w_thres: float,
         b_soft_value: float,
-        w_soft_value: float
+        w_soft_value: float,
     ):
         super(CodeLoss, self).__init__()
         self.mse = nn.MSELoss()
@@ -28,87 +28,60 @@ class CodeLoss(nn.Module):
         self.center_filter = CenterFilter(module_size=module_size)
 
         self.to(qrcode_image.device)
-        self.qrcode_module_image = self.center_filter(qrcode_image)
+        self.qrcode_module_image = self.center_filter(image_binarize(qrcode_image))
         self.target_code = self.get_target_code(
-            self.qrcode_module_image.clone(),
+            image_binarize(qrcode_image),
             b_soft_value,
             w_soft_value,
         )
 
     @staticmethod
     def get_target_code(qrcode_module_image, b_soft_value, w_soft_value):
+        assert torch.equal(
+            qrcode_module_image.unique(),
+            torch.tensor([0., 1.], device=qrcode_module_image.device)
+        )
+        qrcode_module_image = qrcode_module_image.clone()
         qrcode_module_image[qrcode_module_image == 1] = w_soft_value
         qrcode_module_image[qrcode_module_image == 0] = b_soft_value
-        return qrcode_module_image
+        return qrcode_module_image.repeat(1, 3, 1, 1)
 
     def forward(self, x):
-        x_gray = color_to_gray(x)
         error_module = self.error_module_filter(
-            x_gray.clone(),
-            self.qrcode_module_image
+            color_to_gray(x.clone().detach()),
+            self.qrcode_module_image,
         )
-
         return self.mse(
-            self.ss_layer(x_gray) * error_module,
-            self.target_code * error_module
+            self.ss_layer(x) * error_module,
+            self.ss_layer(self.target_code) * error_module,
         )
-
-
-class GramMatrix(nn.Module):
-    def forward(self, x: torch.Tensor):
-        b, c, h, w = x.shape
-        F = x.view(b, c, h * w)
-        G = torch.bmm(F, F.transpose(1, 2))
-        return G.div_(c * h * w)
-
-
-class StyleLoss(nn.Module):
-    def __init__(self):
-        super(StyleLoss, self).__init__()
-        self.gram = GramMatrix()
-        self.mse = nn.MSELoss()
-
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        return self.mse(self.gram(x), self.gram(y))
 
 
 class PerceptualLoss(nn.Module):
-    def __init__(
-        self,
-        content_image: torch.Tensor,
-        feature_extractor: FeatureExtractor,
-        device: torch.device = "cuda" if torch.cuda.is_available() else "cpu",
-    ):
+    def __init__(self):
         super(PerceptualLoss, self).__init__()
-        self.device = device
         self.mse_loss = nn.MSELoss()
-        self.fy = feature_extractor(content_image)[-1]
-        self.eval()
 
-    def forward(self, fx: torch.Tensor) -> torch.Tensor:
-        return self.mse_loss(fx, self.fy)
+    def forward(self, fx: torch.Tensor, fy: torch.Tensor) -> torch.Tensor:
+        return self.mse_loss(fx[-2], fy[-2])
 
 
 class StyleFeatureLoss(nn.Module):
-    def __init__(
-        self,
-        style_image: torch.Tensor,
-        feature_extractor: FeatureExtractor,
-        device: torch.device = "cuda" if torch.cuda.is_available() else "cpu",
-    ):
+    def __init__(self):
         super(StyleFeatureLoss, self).__init__()
-        self.style_loss = StyleLoss()
-        self.device = device
-        self.mse_loss = nn.MSELoss()
-        self.style_image = style_image
-        self.style_features = feature_extractor(style_image)
-        self.eval()
+        self.mse = nn.MSELoss()
 
-    def forward(self, image_features: torch.Tensor) -> torch.Tensor:
+    @staticmethod
+    def _gram_matrix(x: torch.Tensor) -> torch.Tensor:
+        b, c, h, w = x.shape
+        feature = x.view(b, c, h * w)
+        return feature.bmm(feature.transpose(1, 2)) / (c * h * w)
+
+    def forward(self, image_features: torch.Tensor, style_features: torch.Tensor) -> torch.Tensor:
         return sum(
             [
-                self.style_loss(fx, fy)
-                for fx, fy in zip(image_features, self.style_features)
+                self.mse(self._gram_matrix(fx), self._gram_matrix(fy))
+                for fx, fy in zip(image_features, style_features)
             ]
         )
 
@@ -127,20 +100,13 @@ class ArtCoderLoss(nn.Module):
         code_weight: float = 1e12,
         content_weight: float = 1e8,
         style_weight: float = 1e15,
-        model_type: str = "vgg",
         pretrained_weights: str = "DEFAULT",
         device: torch.device = "cuda" if torch.cuda.is_available() else "cpu",
     ):
         super(ArtCoderLoss, self).__init__()
-        self.device = device
-        self.to(device)
-
-        self.feature_extractor = FeatureExtractor(
-            model_type=model_type,
+        self.feature_extractor = VGGFeatureExtractor(
             pretrained_weights=pretrained_weights,
-            device=device,
-        )
-
+        ).to(device)
         self.code_loss = CodeLoss(
             qrcode_image=qrcode_image,
             module_size=module_size,
@@ -149,29 +115,24 @@ class ArtCoderLoss(nn.Module):
             b_soft_value=b_soft_value,
             w_soft_value=w_soft_value,
         )
-        self.perceptual_loss = PerceptualLoss(
-            content_image=content_image,
-            feature_extractor=self.feature_extractor,
-            device=device,
-        )
-        self.style_loss = StyleFeatureLoss(
-            style_image=style_image,
-            feature_extractor=self.feature_extractor,
-            device=device,
-        )
+        self.content_features = self.feature_extractor(content_image)
+        self.style_features = self.feature_extractor(style_image)
+        self.perceptual_loss = PerceptualLoss()
+        self.style_loss = StyleFeatureLoss()
         self.code_weight = code_weight
         self.content_weight = content_weight
         self.style_weight = style_weight
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        image_features = self.feature_extractor(x)
         code_loss = self.code_loss(x)
-        perceptual_loss = self.perceptual_loss(image_features[-1])
-        style_loss = self.style_loss(image_features)
-        total_loss = self.code_weight * code_loss + \
+        image_features = self.feature_extractor(x)
+        perceptual_loss = self.perceptual_loss(image_features, self.content_features)
+        style_loss = self.style_loss(image_features, self.style_features)
+        total_loss = (
+            self.code_weight * code_loss + \
             self.content_weight * perceptual_loss + \
             self.style_weight * style_loss
-
+        )
         return {
             "code": code_loss,
             "perceptual": perceptual_loss,

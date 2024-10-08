@@ -1,8 +1,11 @@
 import math
 
 import cv2
+import numpy as np
 import torch
 from torch import nn
+
+from src.image_processor import min_max_normalize
 
 
 class CenterFilter(nn.Module):
@@ -42,7 +45,6 @@ class CenterMeanFilter(nn.Module):
             stride=module_size,
             padding=0,
             bias=None,
-            groups=1,
         )
         self.kernel_size = module_size
         self.init_weights()
@@ -72,19 +74,10 @@ class ErrorModuleFilter(nn.Module):
         self,
         module_size: int,
         b_thres: float = 70 / 255,
-        w_thres: float = 180 / 255
+        w_thres: float = 180 / 255,
     ):
         super(ErrorModuleFilter, self).__init__()
         self.module_size = module_size
-        self.conv = nn.Conv2d(
-            in_channels=1,
-            out_channels=1,
-            kernel_size=module_size,
-            stride=module_size,
-            padding=0,
-            bias=None,
-            groups=1,
-        )
         self.center_mean_filter = CenterMeanFilter(module_size)
         self.module_size = module_size
         self.b_thres = b_thres
@@ -95,17 +88,17 @@ class ErrorModuleFilter(nn.Module):
         x_center_mean = self.center_mean_filter(x)
         b_error = (y == 0) * (x_center_mean > self.b_thres)
         w_error = (y == 1) * (x_center_mean < self.w_thres)
-        return b_error + w_error
+        return (b_error + w_error).float()
 
 
 class SamplingSimulationLayer(nn.Module):
-    def __init__(self, module_size: int, filter_thres: float = 1e-3):
+    def __init__(self, module_size: int, filter_thres: float = 0.1):
         super(SamplingSimulationLayer, self).__init__()
         self.module_size = module_size
         self.filter_thres = filter_thres
         self.conv = nn.Conv2d(
-            in_channels=1,
-            out_channels=1,
+            in_channels=3,
+            out_channels=3,
             kernel_size=module_size,
             stride=module_size,
             padding=0,
@@ -114,15 +107,20 @@ class SamplingSimulationLayer(nn.Module):
         self.init_weights()
 
     def init_weights(self):
-        sigma = int((self.module_size -1) / 5)
+        sigma = 1.5
         filter_1d = cv2.getGaussianKernel(
             ksize=self.module_size,
             sigma=sigma,
             ktype=cv2.CV_32F,
         )
         filter_2d = torch.tensor(filter_1d * filter_1d.T, dtype=torch.float32)
+        filter_2d = min_max_normalize(filter_2d)
         filter_2d[filter_2d < self.filter_thres] = .0
         gaussian_kernel_init = filter_2d.reshape(1, 1, *filter_2d.shape)
+        gaussian_kernel_init = torch.cat(
+            [gaussian_kernel_init, gaussian_kernel_init, gaussian_kernel_init],
+            dim=1,
+        )
         self.conv.weight = nn.Parameter(gaussian_kernel_init, requires_grad=False)
 
     def forward(self, x):

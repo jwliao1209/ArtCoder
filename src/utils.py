@@ -2,6 +2,8 @@ import numpy as np
 import torch
 from PIL import Image
 from torchvision.transforms.functional import pil_to_tensor
+from torchvision import transforms
+
 from .constants import IMAGE_MAX_VAL
 
 
@@ -10,7 +12,7 @@ def convert_pil_to_normalized_tensor(image: Image) -> torch.Tensor:
 
 
 def convert_normalized_tensor_to_np_image(image: torch.Tensor) -> np.array:
-    return image.clip(0, 1).squeeze(0).permute(1, 2, 0).detach().cpu().numpy() * IMAGE_MAX_VAL
+    return image.clip(0, 1).squeeze(0).permute(1, 2, 0).detach().cpu().numpy()
 
 
 def add_position_pattern(
@@ -52,5 +54,4 @@ def add_position_pattern(
         (module_num - 9) * module_size : (module_num - 4) * module_size - 1,
         :
     ]
-
     return x
