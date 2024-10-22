@@ -21,17 +21,17 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--content_image_path",
         type=str,
-        default="content/boy.jpg",
+        default="images/boy.jpg",
     )
     parser.add_argument(
         "--qrcode_image_path",
         type=str,
-        default="code/boy.jpg",
+        default="images/code.jpg",
     )
     parser.add_argument(
         "--style_image_path",
         type=str,
-        default="style/texture1.1.jpg",
+        default="images/style.jpg",
     )
     parser.add_argument(
         "--module_size",
