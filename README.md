@@ -4,6 +4,7 @@ A fast PyTorch implementation of "ArtCoder: An End-to-end Method for Generating 
 
 
 ## Setup
+To set up the virtual environment and install the required packages, use the following commands:
 ```
 virtualenv --python=python3.10 artcoder
 source diffqrcoder/bin/activate
@@ -12,9 +13,11 @@ pip install -r requirements.txt
 
 
 ## Generation
+To generate the asethetic qrcode, use the following commands:
 ```
 python generate_asethetic_qrcode.py
 ```
+
 
 ## Result
 <table>
