@@ -13,9 +13,9 @@ pip install -r requirements.txt
 
 
 ## Generation
-To generate the asethetic qrcode, use the following commands:
+To generate the aesthetic qrcode, use the following commands:
 ```
-python generate_asethetic_qrcode.py
+python generate_aesthetic_qrcode.py
 ```
 
 
