@@ -23,7 +23,7 @@ python generate_asethetic_qrcode.py
     </tr>
     <tr>
         <td height="250" width="280" align="center"><div align=center><img src="https://github.com/jwliao1209/Improved-ArtCoder/blob/main/images/boy.jpg" width="230" /></td>
-        <td rowspan="2" align="center" width="550" height="550"><img src="https://github.com/jwliao1209/Improved-ArtCoder/blob/main/results/image.jpg" width="500" /></td>
+        <td height="250" width="280" align="center"><div align=center><img src="https://github.com/jwliao1209/Improved-ArtCoder/blob/main/results/image.jpg" width="230" /></td>
     </tr>
 </table>
 
