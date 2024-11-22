@@ -19,14 +19,14 @@ from src.utils import (
 def parse_arguments() -> Namespace:
     parser = ArgumentParser()
     parser.add_argument(
-        "--content_image_path",
-        type=str,
-        default="images/boy.jpg",
-    )
-    parser.add_argument(
         "--qrcode_image_path",
         type=str,
         default="images/code.jpg",
+    )
+    parser.add_argument(
+        "--content_image_path",
+        type=str,
+        default="images/boy.jpg",
     )
     parser.add_argument(
         "--style_image_path",
@@ -123,23 +123,20 @@ def optimize_code(
     x = content_image.detach().clone().requires_grad_(True)
     optimizer = torch.optim.Adam([x], lr=lr)
     objective_func = ArtCoderLoss(
-        qrcode_image=qrcode_image,
-        content_image=content_image,
-        style_image=style_image,
         module_size=module_size,
         b_thres=b_thres,
         w_thres=w_thres,
         b_soft_value=b_soft_value,
         w_soft_value=w_soft_value,
-        device=device,
         code_weight=code_weight,
         content_weight=content_weight,
         style_weight=style_weight,
+        device=device,
     )
 
     for i in tqdm(range(iterations)):
         optimizer.zero_grad()
-        losses = objective_func(x)
+        losses = objective_func(x, qrcode_image, content_image, style_image)
         losses["total"].backward(retain_graph=True)
         optimizer.step()
         x.data.clamp_(0, 1)
