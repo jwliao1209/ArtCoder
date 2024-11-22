@@ -8,7 +8,7 @@ To set up the environment:
 1. Create a virtual environment:
 ```bash=
 virtualenv --python=python3.10 artcoder
-```bash=
+```
 2. Activate the environment:
 ```bash=
 source artcoder/bin/activate
