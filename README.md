@@ -8,20 +8,20 @@ To set up the environment:
 1. Create a virtual environment:
 ```bash=
 virtualenv --python=python3.10 artcoder
-```
+```bash=
 2. Activate the environment:
-```
+```bash=
 source artcoder/bin/activate
 ```
 3. Install the dependencies:
-```
+```bash=
 pip install -r requirements.txt
 ```
 
 
 ## Generation
 To generate the aesthetic qrcode, run the following:
-```
+```bash=
 python generate_aesthetic_qrcode.py \
     --qrcode_image_path <path_to_qrcode_image> \
     --content_image_path <path_to_content_image> \
@@ -61,9 +61,9 @@ If you use this code, please cite the following repository:
 Additionally, please reference the original paper:
 ```bibtex
 @inproceedings{su2021artcoder,
-  title={Artcoder: an end-to-end method for generating scanning-robust stylized qr codes},
-  author={Su, Hao and Niu, Jianwei and Liu, Xuefeng and Li, Qingfeng and Wan, Ji and Xu, Mingliang and Ren, Tao},
-  booktitle={CVPR},
-  year={2021}
+  title     = {Artcoder: an end-to-end method for generating scanning-robust stylized qr codes},
+  author    = {Su, Hao and Niu, Jianwei and Liu, Xuefeng and Li, Qingfeng and Wan, Ji and Xu, Mingliang and Ren, Tao},
+  booktitle = {CVPR},
+  year      = {2021}
 }
 ```
