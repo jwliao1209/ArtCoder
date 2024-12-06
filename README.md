@@ -62,7 +62,7 @@ Additionally, please reference the original paper:
 ```bibtex
 @inproceedings{su2021artcoder,
   title     = {Artcoder: an end-to-end method for generating scanning-robust stylized qr codes},
-  author    = {Su, Hao and Niu, Jianwei and Liu, Xuefeng and Li, Qingfeng and Wan, Ji and Xu, Mingliang and Ren, Tao},
+  author    = {Hao Su, Jianwei Niu, Xuefeng Liu, Qingfeng Li, Ji Wan, Mingliang Xu, Tao Ren},
   booktitle = {CVPR},
   year      = {2021}
 }
