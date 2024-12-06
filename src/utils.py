@@ -16,11 +16,11 @@ def convert_normalized_tensor_to_np_image(image: torch.Tensor) -> np.array:
 
 
 def add_position_pattern(
-    x: torch.Tensor,
-    y: torch.Tensor,
+    x: np.array,
+    y: np.array,
     module_num: int,
     module_size: int
-) -> torch.Tensor:
+) -> np.array:
 
     x[: 8 * module_size - 1, : 8 * module_size - 1, :] = \
         y[: 8 * module_size - 1, : 8 * module_size - 1, :]

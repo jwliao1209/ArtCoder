@@ -16,7 +16,11 @@ def color_to_gray(
     return gray_image.unsqueeze(1)
 
 
-def image_binarize(image, binary_threshold=None):
+def image_binarize(
+    image: torch.Tensor,
+    binary_threshold: float = None
+) -> torch.Tensor:
+
     if image.shape[1] == 3:
         image = color_to_gray(image)
 
@@ -28,5 +32,5 @@ def image_binarize(image, binary_threshold=None):
     return (image > binary_threshold).float()
 
 
-def min_max_normalize(x):
+def min_max_normalize(x: torch.Tensor) -> torch.Tensor:
     return (x - x.min()) / (x.max() - x.min())

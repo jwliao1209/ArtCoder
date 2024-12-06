@@ -50,24 +50,24 @@ def parse_arguments() -> Namespace:
         default=1000,
     )
     parser.add_argument(
-        "--b_thres",
-        type=float,
-        default=70 / 255,
-    )
-    parser.add_argument(
-        "--w_thres",
-        type=float,
-        default=180 / 255,
-    )
-    parser.add_argument(
-        "--b_soft_value",
+        "--soft_black_value",
         type=float,
         default=40 / 255,
     )
     parser.add_argument(
-        "--w_soft_value",
+        "--soft_white_value",
         type=float,
         default=220 / 255,
+    )
+    parser.add_argument(
+        "--error_mask_black_thres",
+        type=float,
+        default=70 / 255,
+    )
+    parser.add_argument(
+        "--error_mask_white_thres",
+        type=float,
+        default=180 / 255,
     )
     parser.add_argument(
         "--lr",
@@ -104,10 +104,10 @@ def optimize_code(
     module_size: int = 16,
     module_num: int = 37,
     iterations: int = 50000,
-    b_thres: float = 70 / 255,
-    w_thres: float = 180 / 255,
-    b_soft_value: float = 40 / 255,
-    w_soft_value: float = 220 / 255,
+    soft_black_value: float = 70 / 255,
+    soft_white_value: float = 180 / 255,
+    error_mask_black_thres: float = 40 / 255,
+    error_mask_white_thres: float = 220 / 255,
     lr: float = 0.01,
     code_weight: float = 1e12,
     content_weight: float = 1e8,
@@ -124,10 +124,10 @@ def optimize_code(
     optimizer = torch.optim.Adam([x], lr=lr)
     objective_func = ArtCoderLoss(
         module_size=module_size,
-        b_thres=b_thres,
-        w_thres=w_thres,
-        b_soft_value=b_soft_value,
-        w_soft_value=w_soft_value,
+        soft_black_value=soft_black_value,
+        soft_white_value=soft_white_value,
+        error_mask_black_thres=error_mask_black_thres,
+        error_mask_white_thres=error_mask_white_thres,
         code_weight=code_weight,
         content_weight=content_weight,
         style_weight=style_weight,
@@ -178,10 +178,10 @@ if __name__ == "__main__":
         module_size=args.module_size,
         module_num=args.module_num,
         iterations=args.iterations,
-        b_thres=args.b_thres,
-        w_thres=args.w_thres,
-        b_soft_value=args.b_soft_value,
-        w_soft_value=args.w_soft_value,
+        soft_black_value=args.soft_black_value,
+        soft_white_value=args.soft_white_value,
+        error_mask_black_thres=args.error_mask_black_thres,
+        error_mask_white_thres=args.error_mask_white_thres,
         code_weight=args.code_weight,
         content_weight=args.content_weight,
         style_weight=args.style_weight,
