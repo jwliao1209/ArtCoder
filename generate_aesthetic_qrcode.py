@@ -113,7 +113,7 @@ def optimize_code(
     content_weight: float = 1e8,
     style_weight: float = 1e15,
     display_loss: bool = True,
-) -> np.array:
+) -> np.ndarray:
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     content_image = content_image.to(device)

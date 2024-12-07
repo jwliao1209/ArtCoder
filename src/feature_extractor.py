@@ -8,8 +8,8 @@ from torchvision.models import vgg16
 class VGGFeatureExtractor(nn.Module):
     def __init__(
         self,
-        requires_grad=False,
-        pretrained_weights="DEFAULT",
+        requires_grad: bool = False,
+        pretrained_weights: str = "DEFAULT",
     ):
         super().__init__()
         self.slices = nn.ModuleList([nn.Sequential() for _ in range(4)])

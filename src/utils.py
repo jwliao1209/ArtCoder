@@ -11,16 +11,16 @@ def convert_pil_to_normalized_tensor(image: Image) -> torch.Tensor:
     return pil_to_tensor(image).unsqueeze(0).float() / IMAGE_MAX_VAL
 
 
-def convert_normalized_tensor_to_np_image(image: torch.Tensor) -> np.array:
+def convert_normalized_tensor_to_np_image(image: torch.Tensor) -> np.ndarray:
     return image.clip(0, 1).squeeze(0).permute(1, 2, 0).detach().cpu().numpy()
 
 
 def add_position_pattern(
-    x: np.array,
-    y: np.array,
+    x: np.ndarray,
+    y: np.ndarray,
     module_num: int,
     module_size: int
-) -> np.array:
+) -> np.ndarray:
 
     x[: 8 * module_size - 1, : 8 * module_size - 1, :] = \
         y[: 8 * module_size - 1, : 8 * module_size - 1, :]
